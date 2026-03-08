@@ -1,0 +1,15 @@
+numpy
+pandas
+matplotlib
+scikit-learn
+river
+jupyter
+itertools
+json
+copy
+time
+pathlib
+collections
+
+
+adazor
