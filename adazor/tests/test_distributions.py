@@ -1,6 +1,6 @@
 import itertools as it
 import numpy as np
-from ht2d.distributions import GaussianMixture, DriftingMixtureStream
+from adazor.distributions import GaussianMixture, DriftingMixtureStream
 
 
 def test_gaussian_mixture_shapes():

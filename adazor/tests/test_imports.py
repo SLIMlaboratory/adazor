@@ -1,9 +1,9 @@
 def test_public_api():
-    import ht2d
+    import adazor
 
-    assert hasattr(ht2d, "GaussianMixture")
-    assert hasattr(ht2d, "DriftingMixtureStream")
-    assert hasattr(ht2d, "NoDriftDetector")
-    assert hasattr(ht2d, "ThresholdDriftDetector")
-    assert hasattr(ht2d, "ZTestDriftDetector")
-    assert hasattr(ht2d, "HoeffdingTreeClassifier")
+    assert hasattr(adazor, "GaussianMixture")
+    assert hasattr(adazor, "DriftingMixtureStream")
+    assert hasattr(adazor, "NoDriftDetector")
+    assert hasattr(adazor, "ThresholdDriftDetector")
+    assert hasattr(adazor, "ZTestDriftDetector")
+    assert hasattr(adazor, "HoeffdingTreeClassifier")

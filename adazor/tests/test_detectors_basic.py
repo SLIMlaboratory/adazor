@@ -1,5 +1,5 @@
 import numpy as np
-from ht2d.detectors import NoDriftDetector, ThresholdDriftDetector, ZTestDriftDetector
+from adazor.detectors import NoDriftDetector, ThresholdDriftDetector, ZTestDriftDetector
 
 
 def test_no_drift_detector_basic():
