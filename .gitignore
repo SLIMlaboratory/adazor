@@ -205,3 +205,37 @@ cython_debug/
 marimo/_static/
 marimo/_lsp/
 __marimo__/
+
+
+################
+# Project-specific experiment outputs
+experiments/outputs/
+experiments/logs/
+results/
+plots/
+figures/
+
+# Local data files
+data/
+*.csv
+*.tsv
+*.parquet
+*.feather
+*.pkl
+*.joblib
+
+# Local editor settings
+.vscode/
+.idea/
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Notebook exports / temporary reports
+*.html
+*.pdf
+
+# 
+*.zip
+*.tar.gz
