@@ -1,4 +1,4 @@
-# ht2d — Hypothesis Test Drift Detection
+# ADAZOR
 
 A minimal, modular Python package for hypothesis-test-based concept drift detection.
 
