@@ -1,4 +1,4 @@
-"""ADAZOR.
+"""ADZOR.
 
 Compact package version of the river.ipynb example.
 """
