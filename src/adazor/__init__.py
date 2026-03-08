@@ -1,4 +1,4 @@
-"""ht2d — Hypothesis Test Drift Detection.
+"""ADAZOR.
 
 Compact package version of the river.ipynb example.
 """
