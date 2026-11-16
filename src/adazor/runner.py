@@ -1,13 +1,15 @@
 """Stream processing loop shared by ADAZOR and OCDD (Algorithm 1 of the paper).
 
-1. The first ``n`` examples form the window ``W``; the predictor and the
-   outlier detector are fitted on it, and their outlier indicators form the
-   reference sample passed to ``detector.reset``.
-2. Each new example enters ``W`` (the oldest one leaves) together with its
-   indicator, and ``detector.detect`` is applied to the indicators in ``W``.
+1. The first ``n`` examples form the window ``W``; the predictor is fitted
+   on it and the monitor is told the inputs of ``W`` (``monitor.fit``). For
+   ADAZOR and OCDD (:class:`adazor.monitors.OutlierRateMonitor`) this fits the
+   outlier detector and computes the reference indicators.
+2. Each new example enters ``W`` (the oldest one leaves) and its input is
+   passed to ``monitor.update``, which decides whether to raise an alert.
 3. On an alert, only the ``floor(r * n)`` most recent items of ``W`` are kept,
-   ``s = n - floor(r * n)`` new examples are read to fill it again, both models
-   are refitted on ``W`` from scratch, and the reference sample is recomputed.
+   ``s = n - floor(r * n)`` new examples are read to fill it again, the
+   predictor is refitted on ``W`` from scratch and ``monitor.fit`` is called
+   again.
 
 Between alerts the predictor is not updated.
 
@@ -37,9 +39,8 @@ from typing import Any
 
 import numpy as np
 
-from .detectors import DriftDetector
 from .models import Model
-from .outliers import OCSVMOutlierDetector
+from .monitors import Monitor
 
 __all__ = ["RunResult", "run_stream"]
 
@@ -89,16 +90,16 @@ def run_stream(
     *,
     n: int,
     r: float,
-    detector: DriftDetector,
+    monitor: Monitor,
     model_factory: Callable[[], Model],
-    outlier_factory: Callable[[], OCSVMOutlierDetector],
     max_examples: int | None = None,
     eval_every: int = 1,
 ) -> RunResult:
     """Process a stream according to Algorithm 1 and return what happened.
 
-    ``model_factory`` and ``outlier_factory`` are called at the beginning and at
-    every retraining, so that each fit starts from a fresh model.
+    ``model_factory`` is called at the beginning and at every retraining, so
+    that each fit starts from a fresh model; the monitor is refitted at the
+    same times.
     """
     if n < 2:
         raise ValueError("the window must contain at least two examples")
@@ -129,14 +130,12 @@ def run_stream(
         X.append(item[0])
         Y.append(item[1])
 
-    def refit():
+    def refit() -> Model:
         model = model_factory().fit(np.asarray(X), np.asarray(Y))
-        outlier = outlier_factory().fit(np.asarray(X))
-        flags = deque(outlier.flags(np.asarray(X)).tolist(), maxlen=n)
-        detector.reset(flags)
-        return model, outlier, flags
+        monitor.fit(np.asarray(X))
+        return model
 
-    model, outlier, F = refit()
+    model = refit()
     if eval_every:
         res.window_accuracy.append((res.n_read, _accuracy(model, X, Y)))
 
@@ -149,9 +148,8 @@ def run_stream(
         res.prequential_total += 1
         X.append(x)
         Y.append(y)
-        F.append(bool(outlier.flags(x)[0]))
 
-        if detector.detect(F):
+        if monitor.update(x):
             t_alert = res.n_read
             res.alerts.append(t_alert)
             res.alert_window_accuracy.append((t_alert, _accuracy(model, X, Y)))
@@ -173,7 +171,7 @@ def run_stream(
             for x, y in kept + fresh:
                 X.append(x)
                 Y.append(y)
-            model, outlier, F = refit()
+            model = refit()
             if eval_every:
                 res.window_accuracy.append((res.n_read, _accuracy(model, X, Y)))
         elif eval_every and (res.n_read - n) % eval_every == 0:

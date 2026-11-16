@@ -14,7 +14,7 @@ from typing import Any
 
 import numpy as np
 
-__all__ = ["MODEL_NAMES", "Model", "RiverModel", "SklearnModel", "make_model"]
+__all__ = ["MODEL_NAMES", "Model", "RiverModel", "SklearnModel", "StandardizedModel", "make_model"]
 
 
 class Model(ABC):
@@ -121,10 +121,44 @@ MODEL_NAMES = {
 }
 
 
-def make_model(name: str, seed: int | None = None) -> Model:
-    """Create a fresh, unfitted model given its short name (see ``MODEL_NAMES``)."""
+class StandardizedModel(Model):
+    """Standardizes the features (with statistics of the training window) before
+    passing them to another model."""
+
+    def __init__(self, model: Model) -> None:
+        self.model = model
+        self.mean: np.ndarray | None = None
+        self.scale: np.ndarray | None = None
+
+    def fit(self, X: np.ndarray, y: np.ndarray) -> StandardizedModel:
+        X = np.asarray(X, dtype=float)
+        self.mean = X.mean(axis=0)
+        std = X.std(axis=0)
+        self.scale = np.where(std > 0, std, 1.0)
+        self.model.fit((X - self.mean) / self.scale, y)
+        return self
+
+    def predict(self, X: np.ndarray) -> np.ndarray:
+        if self.mean is None:
+            raise RuntimeError("model not fitted")
+        return self.model.predict((np.asarray(X, dtype=float) - self.mean) / self.scale)
+
+    def predict_one(self, x: np.ndarray) -> Any:
+        if self.mean is None:
+            raise RuntimeError("model not fitted")
+        return self.model.predict_one((np.asarray(x, dtype=float) - self.mean) / self.scale)
+
+
+def make_model(name: str, seed: int | None = None, standardize: bool = False) -> Model:
+    """Create a fresh, unfitted model given its short name (see ``MODEL_NAMES``).
+
+    With ``standardize=True`` the features are standardized on each training
+    window before reaching the model.
+    """
     if name in ("ht", "gnb", "pa", "arf", "lr"):
-        return RiverModel(_river(name, seed))
-    if name in ("lsv", "gsv"):
-        return SklearnModel(_sklearn(name, seed))
-    raise ValueError(f"unknown model '{name}'; choose among {sorted(MODEL_NAMES)}")
+        model: Model = RiverModel(_river(name, seed))
+    elif name in ("lsv", "gsv"):
+        model = SklearnModel(_sklearn(name, seed))
+    else:
+        raise ValueError(f"unknown model '{name}'; choose among {sorted(MODEL_NAMES)}")
+    return StandardizedModel(model) if standardize else model

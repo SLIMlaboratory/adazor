@@ -1,0 +1,95 @@
+# Sect. 5.4: one parameter at a time (window size, alpha, threshold, retained fraction).
+name = "e5_sensitivity"
+seeds = [42, 52, 62, 72, 82]
+
+[run_defaults]
+n = 250
+r = 0.1
+eval_every = 0
+
+[outlier]
+# standardization on each window + gamma = 1/d: the default everywhere
+nu = 0.1
+gamma = "auto"
+standardize = true
+
+[[models]]
+name = "gnb"
+standardize = true
+
+[[blocks]]  # window size
+streams = [{kind = "mixture", scenario = "setting1"}, {kind = "mixture", scenario = "setting2"}, {kind = "mixture", scenario = "virtual_abrupt"}, {kind = "mixture", scenario = "stationary"}, {kind = "injected", file = "real-world/weather.csv", feature = "auto", position = 2000, width = 0, length = 12000}, {kind = "injected", file = "real-world/elec.csv", feature = "auto", position = 2000, width = 0, length = 12000}]
+monitors = [{kind = "adazor", alpha = 0.025, label = "ADAZOR"}, {kind = "ocdd", f = 0.1, label = "OCDD f=0.1"}]
+runs = [{n = 200}, {n = 250}, {n = 362}, {n = 500}, {n = 1005}]
+
+[[blocks]]  # significance level
+streams = [{kind = "mixture", scenario = "setting1"}, {kind = "mixture", scenario = "setting2"}, {kind = "mixture", scenario = "virtual_abrupt"}, {kind = "mixture", scenario = "stationary"}, {kind = "injected", file = "real-world/weather.csv", feature = "auto", position = 2000, width = 0, length = 12000}, {kind = "injected", file = "real-world/elec.csv", feature = "auto", position = 2000, width = 0, length = 12000}]
+monitors = [{kind = "adazor", alpha = 0.005, label = "ADAZOR (alpha)"}, {kind = "adazor", alpha = 0.01, label = "ADAZOR (alpha)"}, {kind = "adazor", alpha = 0.025, label = "ADAZOR (alpha)"}, {kind = "adazor", alpha = 0.05, label = "ADAZOR (alpha)"}, {kind = "adazor", alpha = 0.1, label = "ADAZOR (alpha)"}]
+
+[[blocks]]  # fixed threshold
+streams = [{kind = "mixture", scenario = "setting1"}, {kind = "mixture", scenario = "setting2"}, {kind = "mixture", scenario = "virtual_abrupt"}, {kind = "mixture", scenario = "stationary"}, {kind = "injected", file = "real-world/weather.csv", feature = "auto", position = 2000, width = 0, length = 12000}, {kind = "injected", file = "real-world/elec.csv", feature = "auto", position = 2000, width = 0, length = 12000}]
+monitors = [{kind = "ocdd", f = 0.1, label = "OCDD (f)"}, {kind = "ocdd", f = 0.15, label = "OCDD (f)"}, {kind = "ocdd", f = 0.2, label = "OCDD (f)"}, {kind = "ocdd", f = 0.25, label = "OCDD (f)"}, {kind = "ocdd", f = 0.3, label = "OCDD (f)"}]
+
+[[blocks]]  # retained fraction
+streams = [{kind = "mixture", scenario = "setting1"}, {kind = "mixture", scenario = "setting2"}, {kind = "mixture", scenario = "virtual_abrupt"}, {kind = "mixture", scenario = "stationary"}, {kind = "injected", file = "real-world/weather.csv", feature = "auto", position = 2000, width = 0, length = 12000}, {kind = "injected", file = "real-world/elec.csv", feature = "auto", position = 2000, width = 0, length = 12000}]
+monitors = [{kind = "adazor", alpha = 0.025, label = "ADAZOR (r)"}, {kind = "ocdd", f = 0.1, label = "OCDD f=0.1 (r)"}]
+runs = [{r = 0.0}, {r = 0.1}, {r = 0.3}, {r = 0.5}]
+
+[analysis]
+tol = 250
+
+[[analysis.figures]]
+type = "sweep"
+name = "n_false_alarms"
+x = "n"
+y = "false_alarms_per_1000"
+where = {stream = "stationary", monitor = ["ADAZOR", "OCDD f=0.1"]}
+
+[[analysis.figures]]
+type = "sweep"
+name = "n_delay"
+x = "n"
+y = "mean_delay"
+where = {stream = ["setting1", "virtual_abrupt"], monitor = ["ADAZOR", "OCDD f=0.1"]}
+
+[[analysis.figures]]
+type = "sweep"
+name = "alpha_false_alarms"
+x = "alpha"
+y = "false_alarms_per_1000"
+where = {stream = "stationary", monitor = ["ADAZOR (alpha)"]}
+
+[[analysis.figures]]
+type = "sweep"
+name = "alpha_delay"
+x = "alpha"
+y = "mean_delay"
+where = {stream = ["setting1", "virtual_abrupt"], monitor = ["ADAZOR (alpha)"]}
+
+[[analysis.figures]]
+type = "sweep"
+name = "f_false_alarms"
+x = "f"
+y = "false_alarms_per_1000"
+where = {stream = "stationary", monitor = ["OCDD (f)"]}
+
+[[analysis.figures]]
+type = "sweep"
+name = "f_delay"
+x = "f"
+y = "mean_delay"
+where = {stream = ["setting1", "virtual_abrupt"], monitor = ["OCDD (f)"]}
+
+[[analysis.figures]]
+type = "sweep"
+name = "r_false_alarms"
+x = "r"
+y = "false_alarms_per_1000"
+where = {stream = "stationary", monitor = ["ADAZOR (r)", "OCDD f=0.1 (r)"]}
+
+[[analysis.figures]]
+type = "sweep"
+name = "r_delay"
+x = "r"
+y = "mean_delay"
+where = {stream = ["setting1", "virtual_abrupt"], monitor = ["ADAZOR (r)", "OCDD f=0.1 (r)"]}

@@ -1,0 +1,49 @@
+# Sect. 5.2: Gaussian-mixture streams with known drift.
+name = "e2_simulations"
+seeds = [42, 52, 62, 72, 82, 92, 102, 112, 122, 132]
+
+[run_defaults]
+n = 250
+r = 0.1
+eval_every = 10
+
+[outlier]
+# standardization on each window + gamma = 1/d: the default everywhere
+nu = 0.1
+gamma = "auto"
+standardize = true
+
+[[models]]
+name = "ht"
+
+# main grid: every scenario, every rule, standardized OCSVM
+[[blocks]]
+streams = [{kind = "mixture", scenario = "setting1"}, {kind = "mixture", scenario = "setting2"}, {kind = "mixture", scenario = "setting1_abrupt"}, {kind = "mixture", scenario = "setting2_abrupt"}, {kind = "mixture", scenario = "virtual"}, {kind = "mixture", scenario = "virtual_abrupt"}, {kind = "mixture", scenario = "label_swap_abrupt"}, {kind = "mixture", scenario = "stationary"}]
+monitors = [{kind = "none", label = "none"}, {kind = "ocdd", f = 0.1, label = "OCDD f=0.1"}, {kind = "adazor", alpha = 0.025, label = "ADAZOR"}]
+
+# the OCSVM configuration of the conference paper (gamma = 0.5, no standardization)
+[[blocks]]
+streams = [{kind = "mixture", scenario = "setting1"}, {kind = "mixture", scenario = "setting2"}]
+monitors = [{kind = "ocdd", f = 0.1, label = "OCDD f=0.1 (paper OCSVM)", outlier = {gamma = 0.5, standardize = false}}, {kind = "adazor", alpha = 0.025, label = "ADAZOR (paper OCSVM)", outlier = {gamma = 0.5, standardize = false}}]
+
+[analysis]
+tol = 250
+
+[[analysis.tables]]
+name = "detection"
+group_by = ["stream", "monitor"]
+metrics = ["n_alerts", "n_missed", "mean_delay", "n_false_alarms", "prequential_accuracy"]
+digits = 2
+
+[[analysis.figures]]
+type = "trajectories"
+name = "settings"
+streams = ["setting1", "setting2"]
+monitors = ["none", "OCDD f=0.1", "ADAZOR"]
+
+[[analysis.figures]]
+type = "alerts"
+name = "alerts"
+seed = 42
+streams = ["setting1", "setting2", "setting1_abrupt", "setting2_abrupt", "virtual", "virtual_abrupt", "label_swap_abrupt", "stationary"]
+monitors = ["OCDD f=0.1", "ADAZOR"]

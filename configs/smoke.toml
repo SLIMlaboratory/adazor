@@ -1,0 +1,74 @@
+# Quick end-to-end check of the pipeline (well under a minute with 4 workers).
+name = "smoke"
+seeds = [42]
+
+[run_defaults]
+n = 250
+r = 0.1
+eval_every = 50
+
+[outlier]
+nu = 0.1
+gamma = "auto"
+standardize = true
+
+[[streams]]
+kind = "mixture"
+scenario = "setting1"
+length = 4000
+
+[[streams]]
+kind = "mixture"
+scenario = "stationary"
+length = 3000
+
+[[streams]]
+kind = "injected"
+file = "real-world/weather.csv"
+feature = "auto"
+position = 1500
+width = 0
+length = 3000
+
+[[monitors]]
+kind = "none"
+label = "none"
+
+[[monitors]]
+kind = "ocdd"
+f = 0.1
+label = "OCDD"
+
+[[monitors]]
+kind = "adazor"
+alpha = 0.025
+label = "ADAZOR"
+
+[[monitors]]
+kind = "kswin"
+
+[[monitors]]
+kind = "d3"
+
+[[models]]
+name = "gnb"
+standardize = true
+
+[analysis]
+
+[[analysis.tables]]
+name = "summary"
+group_by = ["stream", "monitor"]
+metrics = ["n_alerts", "prequential_accuracy", "n_missed", "mean_delay", "n_false_alarms"]
+
+[[analysis.figures]]
+type = "trajectories"
+name = "trajectories"
+streams = ["setting1"]
+monitors = ["none", "OCDD", "ADAZOR"]
+
+[[analysis.figures]]
+type = "alerts"
+name = "alerts"
+streams = ["setting1", "stationary", "weather (shift, w=0)"]
+monitors = ["OCDD", "ADAZOR", "KSWIN", "D3"]

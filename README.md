@@ -24,59 +24,86 @@ pytest                                  # run the test suite
 ## Usage
 
 ```python
-from adazor import (ArrayStream, OCSVMOutlierDetector, ZTestDriftDetector,
-                    load_csv, make_model, run_stream)
+from adazor import (ArrayStream, OCSVMOutlierDetector, OutlierRateMonitor,
+                    ZTestDriftDetector, load_csv, make_model, run_stream)
 
 X, y, _ = load_csv("weather.csv")            # rows in temporal order, 'target' column
+monitor = OutlierRateMonitor(                # ADAZOR = outlier indicators + Z-test
+    ZTestDriftDetector(alpha=0.025),         # conservative variance, as in the paper
+    lambda: OCSVMOutlierDetector(nu=0.1, gamma="auto", standardize=True),
+    baseline="in_sample",                    # or "holdout"
+)
 result = run_stream(
     ArrayStream(X, y),
-    n=250,                                    # window size
-    r=0.1,                                    # fraction of the window kept at retraining
-    detector=ZTestDriftDetector(alpha=0.025), # ADAZOR (conservative variance, as in the paper)
-    model_factory=lambda: make_model("pa"),
-    outlier_factory=lambda: OCSVMOutlierDetector(nu=0.1, gamma="auto", standardize=True),
+    n=250,                                   # window size
+    r=0.1,                                   # fraction of the window kept at retraining
+    monitor=monitor,
+    model_factory=lambda: make_model("pa", standardize=True),
 )
 print(result.n_alerts, result.alerts, result.prequential_accuracy)
 ```
 
 `run_stream` implements Algorithm 1 of the paper: after an alert it keeps the
 `floor(r*n)` most recent examples of the window, reads `s = n - floor(r*n)` new
-ones, and refits the predictor and the outlier detector from scratch.
-See the docstring of `adazor.runner` for the exact definitions of time and of
-the two accuracy measures that are recorded (prequential and window accuracy).
+ones, refits the predictor from scratch and refits the monitor on the new
+window. See the docstring of `adazor.runner` for the exact definitions of time
+and of the two accuracy measures that are recorded (prequential and window
+accuracy).
 
-The package also exposes the closed-form properties of the conservative test
-used in the paper: `effective_level`, `min_detectable_shift` and
-`window_size_for_shift`.
+A *monitor* is any label-free detector with `fit(X)` (called at every
+(re)training with the inputs of the window) and `update(x) -> bool` (called for
+each input entering the window). OCDD is `OutlierRateMonitor` with a
+`ThresholdDriftDetector`; `KSWINMonitor` and `D3Monitor` are the label-free
+baselines used in the paper.
+
+The package also exposes the closed-form properties of the conservative test:
+`effective_level`, `min_detectable_shift` and `window_size_for_shift`.
 
 | module | content |
 |---|---|
-| `adazor.detectors` | `ZTestDriftDetector` (ADAZOR, `variance="conservative"` or `"pooled"`), `ThresholdDriftDetector` (OCDD rule), `NoDriftDetector`, closed-form properties |
+| `adazor.detectors` | decision rules on outlier indicators: `ZTestDriftDetector` (ADAZOR, `variance="conservative"` or `"pooled"`), `ThresholdDriftDetector` (OCDD), `NoDriftDetector`; closed-form properties |
 | `adazor.outliers` | `OCSVMOutlierDetector`: standardization (fitted on the window) + one-class SVM |
+| `adazor.monitors` | `Monitor` interface, `OutlierRateMonitor` (ADAZOR / OCDD, in-sample or hold-out baseline), `NullMonitor` |
+| `adazor.baselines` | `KSWINMonitor` (per-feature KSWIN with Bonferroni correction), `D3Monitor` (discriminative detector) |
 | `adazor.streams` | `GaussianMixture`, `DriftingMixtureStream` (abrupt/gradual drift), `ArrayStream`, `load_csv` |
-| `adazor.models` | predictors refitted from scratch on each window (`make_model`: `ht`, `gnb`, `pa`, `arf`, `lr`, `lsv`, `gsv`) |
+| `adazor.models` | predictors refitted from scratch on each window (`make_model`: `ht`, `gnb`, `pa`, `arf`, `lr`, `lsv`, `gsv`; optional standardization) |
 | `adazor.runner` | `run_stream`, the processing loop, and `RunResult` |
 
 ## Reproducing the experiments
 
-Controlled simulations of gradual drift (two settings, ten seeds each):
+The experiments of the paper are described by the TOML files in `configs/`
+and run by the `experiments` package (from the repository root):
 
 ```bash
-python experiments/simulations.py --setting 1 --out results/sim1.json --plot results/sim1.pdf
-python experiments/simulations.py --setting 2 --out results/sim2.json --plot results/sim2.pdf
+python -m experiments run configs/e2_simulations.toml --workers 4   # resumable
+python -m experiments status configs/e2_simulations.toml
+python -m experiments analyze configs/e2_simulations.toml --out-dir figures/
 ```
 
-Benchmark streams: the CSV files of the
+Each configuration expands into a grid of jobs (streams x monitors x
+predictors x run parameters x seeds, possibly in several blocks); every job
+writes one JSON record to `results/<experiment>/<job_id>.json` with its full
+specification, the outcome, the drift events when known, and provenance (package
+version, git commit, library versions). Jobs already done are skipped, so an
+interrupted run can simply be restarted. `analyze` writes the tables (CSV and
+LaTeX) and the PDF figures declared in the `[analysis]` section of the
+configuration.
+
+| config | content |
+|---|---|
+| `smoke.toml` | end-to-end check of the pipeline (under a minute) |
+| `e1_properties.toml` | statistical claims: effective level of the test, in-sample vs. out-of-sample outlier rates, firing rates without drift |
+| `e2_simulations.toml` | Gaussian-mixture streams with known drift: abrupt/gradual, inputs moving, labeling rule changing, stationary |
+| `e3_injected.toml` | real datasets with an input shift injected at a known position |
+| `e4_benchmarks.toml` | benchmark streams in their original order, and shuffled as stationary controls |
+| `e5_sensitivity.toml` | one parameter at a time: window size, alpha, threshold f, retained fraction r |
+| `e6_comparison.toml` | ADAZOR variants, OCDD with several thresholds, KSWIN and D3 |
+
+The benchmark streams are the CSV files of the
 [concept-drift-datasets-scikit-multiflow](https://github.com/ogozuacik/concept-drift-datasets-scikit-multiflow)
-collection (not redistributed here), e.g.
-
-```bash
-python experiments/benchmarks.py data/real-world/*.csv data/artificial/*.csv \
-    --models ht gnb pa arf lr lsv gsv --f 0.1 0.15 0.2 0.25 --out results/benchmarks.jsonl
-```
-
-Results are appended to a JSON-lines file, one record per
-(dataset, predictor, detector, seed).
+collection (not redistributed here). Their location is given by the
+environment variable `OCC_DATA` (default:
+`~/repo/ricerca/occ-drift-detection/data`).
 
 ## Changes with respect to the `experiments_adazor` branch
 

@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "adazor"
-version = "0.2.0"
+version = "0.3.0"
 description = "ADAZOR: label-free concept drift detection via a Z-test on the outlier rate of a one-class SVM."
 readme = "README.md"
 requires-python = ">=3.11"

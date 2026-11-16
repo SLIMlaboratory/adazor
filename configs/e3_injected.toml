@@ -1,0 +1,181 @@
+# Real datasets with an input shift injected at a known position (abrupt and gradual).
+name = "e3_injected"
+seeds = [42, 52, 62, 72, 82]
+
+[run_defaults]
+n = 250
+r = 0.1
+eval_every = 0
+
+[outlier]
+# standardization on each window + gamma = 1/d: the default everywhere
+nu = 0.1
+gamma = "auto"
+standardize = true
+
+[[models]]
+name = "gnb"
+standardize = true
+
+[[monitors]]
+kind = "none"
+label = "none"
+
+[[monitors]]
+kind = "ocdd"
+f = 0.1
+label = "OCDD f=0.1"
+
+[[monitors]]
+kind = "adazor"
+alpha = 0.025
+label = "ADAZOR"
+
+[[monitors]]
+kind = "adazor"
+alpha = 0.025
+baseline = "holdout"
+label = "ADAZOR hold-out"
+
+[[streams]]
+kind = "injected"
+file = "artificial/sea_stream.csv"
+feature = "auto"
+position = 2000
+width = 0
+length = 12000
+
+[[streams]]
+kind = "injected"
+file = "artificial/sea_stream.csv"
+feature = "auto"
+position = 2000
+width = 1000
+length = 12000
+
+[[streams]]
+kind = "injected"
+file = "artificial/sea_big.csv"
+feature = "auto"
+position = 2000
+width = 0
+length = 12000
+
+[[streams]]
+kind = "injected"
+file = "artificial/sea_big.csv"
+feature = "auto"
+position = 2000
+width = 1000
+length = 12000
+
+[[streams]]
+kind = "injected"
+file = "artificial/rotatingHyperplane.csv"
+feature = "auto"
+position = 2000
+width = 0
+length = 12000
+
+[[streams]]
+kind = "injected"
+file = "artificial/rotatingHyperplane.csv"
+feature = "auto"
+position = 2000
+width = 1000
+length = 12000
+
+[[streams]]
+kind = "injected"
+file = "real-world/spam.csv"
+feature = "auto"
+position = 2000
+width = 0
+length = 12000
+
+[[streams]]
+kind = "injected"
+file = "real-world/spam.csv"
+feature = "auto"
+position = 2000
+width = 1000
+length = 12000
+
+[[streams]]
+kind = "injected"
+file = "real-world/phishing.csv"
+feature = "auto"
+position = 2000
+width = 0
+length = 12000
+
+[[streams]]
+kind = "injected"
+file = "real-world/phishing.csv"
+feature = "auto"
+position = 2000
+width = 1000
+length = 12000
+
+[[streams]]
+kind = "injected"
+file = "real-world/weather.csv"
+feature = "auto"
+position = 2000
+width = 0
+length = 12000
+
+[[streams]]
+kind = "injected"
+file = "real-world/weather.csv"
+feature = "auto"
+position = 2000
+width = 1000
+length = 12000
+
+[[streams]]
+kind = "injected"
+file = "real-world/elec.csv"
+feature = "auto"
+position = 2000
+width = 0
+length = 12000
+
+[[streams]]
+kind = "injected"
+file = "real-world/elec.csv"
+feature = "auto"
+position = 2000
+width = 1000
+length = 12000
+
+[[streams]]
+kind = "injected"
+file = "real-world/airlines2.csv"
+feature = "auto"
+position = 2000
+width = 0
+length = 12000
+
+[[streams]]
+kind = "injected"
+file = "real-world/airlines2.csv"
+feature = "auto"
+position = 2000
+width = 1000
+length = 12000
+
+[analysis]
+tol = 250
+
+[[analysis.tables]]
+name = "detection"
+group_by = ["stream", "monitor"]
+metrics = ["n_alerts", "n_missed", "mean_delay", "n_false_alarms", "false_alarms_per_1000", "prequential_accuracy"]
+digits = 2
+
+[[analysis.tables]]
+name = "overall"
+group_by = ["monitor"]
+metrics = ["n_missed", "mean_delay", "false_alarms_per_1000"]
+digits = 2

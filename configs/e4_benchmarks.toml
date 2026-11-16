@@ -1,0 +1,160 @@
+# Sect. 5.3: benchmark streams in their original order, and shuffled (stationary controls).
+name = "e4_benchmarks"
+seeds = [42]
+
+[run_defaults]
+n = 250
+r = 0.1
+eval_every = 0
+
+[outlier]
+# standardization on each window + gamma = 1/d: the default everywhere
+nu = 0.1
+gamma = "auto"
+standardize = true
+
+# predictors see standardized features (statistics of each training window)
+[[models]]
+name = "ht"
+standardize = true
+
+[[models]]
+name = "gnb"
+standardize = true
+
+[[models]]
+name = "pa"
+standardize = true
+
+[[models]]
+name = "arf"
+standardize = true
+
+[[models]]
+name = "lr"
+standardize = true
+
+[[models]]
+name = "lsv"
+standardize = true
+
+[[models]]
+name = "gsv"
+standardize = true
+
+[[monitors]]
+kind = "ocdd"
+f = 0.1
+label = "OCDD f=0.1"
+
+[[monitors]]
+kind = "adazor"
+alpha = 0.025
+label = "ADAZOR"
+
+[[monitors]]
+kind = "adazor"
+alpha = 0.025
+baseline = "holdout"
+label = "ADAZOR hold-out"
+
+[[streams]]
+kind = "csv"
+file = "artificial/sea_stream.csv"
+shuffle = false
+
+[[streams]]
+kind = "csv"
+file = "artificial/sea_stream.csv"
+shuffle = true
+
+[[streams]]
+kind = "csv"
+file = "artificial/sea_big.csv"
+shuffle = false
+
+[[streams]]
+kind = "csv"
+file = "artificial/sea_big.csv"
+shuffle = true
+
+[[streams]]
+kind = "csv"
+file = "artificial/rotatingHyperplane.csv"
+shuffle = false
+
+[[streams]]
+kind = "csv"
+file = "artificial/rotatingHyperplane.csv"
+shuffle = true
+
+[[streams]]
+kind = "csv"
+file = "real-world/spam.csv"
+shuffle = false
+
+[[streams]]
+kind = "csv"
+file = "real-world/spam.csv"
+shuffle = true
+
+[[streams]]
+kind = "csv"
+file = "real-world/phishing.csv"
+shuffle = false
+
+[[streams]]
+kind = "csv"
+file = "real-world/phishing.csv"
+shuffle = true
+
+[[streams]]
+kind = "csv"
+file = "real-world/weather.csv"
+shuffle = false
+
+[[streams]]
+kind = "csv"
+file = "real-world/weather.csv"
+shuffle = true
+
+[[streams]]
+kind = "csv"
+file = "real-world/elec.csv"
+shuffle = false
+
+[[streams]]
+kind = "csv"
+file = "real-world/elec.csv"
+shuffle = true
+
+[[streams]]
+kind = "csv"
+file = "real-world/airlines2.csv"
+shuffle = false
+
+[[streams]]
+kind = "csv"
+file = "real-world/airlines2.csv"
+shuffle = true
+
+[analysis]
+
+[[analysis.tables]]
+name = "alerts"
+group_by = ["stream", "monitor"]
+metrics = ["n_alerts", "prequential_accuracy"]
+digits = 3
+
+[[analysis.tables]]
+name = "accuracy"
+group_by = ["stream", "model", "monitor"]
+metrics = ["n_alerts", "prequential_accuracy"]
+digits = 3
+
+[[analysis.figures]]
+type = "alerts"
+name = "alerts"
+model = "pa"
+streams = ["sea_stream", "sea_big", "rotatingHyperplane", "spam", "phishing", "weather", "elec", "airlines2"]
+monitors = ["OCDD f=0.1", "ADAZOR", "ADAZOR hold-out"]
