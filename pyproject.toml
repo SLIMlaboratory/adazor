@@ -8,7 +8,8 @@ version = "0.3.0"
 description = "ADAZOR: label-free concept drift detection via a Z-test on the outlier rate of a one-class SVM."
 readme = "README.md"
 requires-python = ">=3.11"
-license = { file = "LICENSE" }
+license = "Apache-2.0"
+license-files = ["LICENSE"]
 authors = [
   { name = "Anna Maria Zanaboni" },
   { name = "Dario Malchiodi" },
