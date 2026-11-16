@@ -239,3 +239,6 @@ Thumbs.db
 # 
 *.zip
 *.tar.gz
+# Experiment results
+runs/
+results/
