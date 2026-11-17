@@ -23,7 +23,12 @@ Two accuracy measures are recorded:
   in ``W``, as in the paper. Right after a retraining this is computed on the
   training data, hence it is optimistic for the following ``n`` steps. It is
   recorded every ``eval_every`` steps (``0`` disables it) and, at each alert,
-  just before retraining.
+  just before retraining;
+* *recent prequential accuracy*: fraction of correct prequential predictions
+  among the last ``n`` ones, a sliding version of the prequential accuracy
+  that never scores a model on its own training data. It is recorded every
+  ``eval_every`` predictions once ``n`` predictions are available, and at
+  each alert.
 
 Time ``t`` is the number of examples read from the stream so far, so that the
 example read at time ``t`` is the ``t``-th example of the stream.
@@ -53,6 +58,8 @@ class RunResult:
     prequential_total: int = 0
     window_accuracy: list[tuple[int, float]] = field(default_factory=list)
     alert_window_accuracy: list[tuple[int, float]] = field(default_factory=list)
+    recent_accuracy: list[tuple[int, float]] = field(default_factory=list)
+    alert_recent_accuracy: list[tuple[int, float]] = field(default_factory=list)
     truncated_refill: bool = False
 
     @property
@@ -76,6 +83,8 @@ class RunResult:
             "mean_window_accuracy": self.mean_window_accuracy,
             "window_accuracy": self.window_accuracy,
             "alert_window_accuracy": self.alert_window_accuracy,
+            "recent_accuracy": self.recent_accuracy,
+            "alert_recent_accuracy": self.alert_recent_accuracy,
             "truncated_refill": self.truncated_refill,
         }
 
@@ -139,13 +148,22 @@ def run_stream(
     if eval_every:
         res.window_accuracy.append((res.n_read, _accuracy(model, X, Y)))
 
+    recent: deque = deque(maxlen=n)     # outcomes of the last n prequential predictions
+
+    def predict(x, y) -> None:
+        ok = bool(model.predict_one(x) == y)
+        res.prequential_correct += ok
+        res.prequential_total += 1
+        recent.append(ok)
+        if eval_every and len(recent) == n and res.prequential_total % eval_every == 0:
+            res.recent_accuracy.append((res.n_read, sum(recent) / n))
+
     while True:
         item = read()
         if item is None:
             break
         x, y = item
-        res.prequential_correct += bool(model.predict_one(x) == y)
-        res.prequential_total += 1
+        predict(x, y)
         X.append(x)
         Y.append(y)
 
@@ -153,6 +171,8 @@ def run_stream(
             t_alert = res.n_read
             res.alerts.append(t_alert)
             res.alert_window_accuracy.append((t_alert, _accuracy(model, X, Y)))
+            if recent:
+                res.alert_recent_accuracy.append((t_alert, sum(recent) / len(recent)))
             kept = list(zip(X, Y))[n - keep:] if keep else []
             fresh = []
             for _ in range(s):
@@ -160,8 +180,7 @@ def run_stream(
                 if item is None:
                     break
                 x, y = item
-                res.prequential_correct += bool(model.predict_one(x) == y)
-                res.prequential_total += 1
+                predict(x, y)
                 fresh.append((x, y))
             if len(fresh) < s:          # the stream ended while refilling
                 res.truncated_refill = True

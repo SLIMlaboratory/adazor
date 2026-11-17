@@ -115,3 +115,16 @@ def test_rejects_invalid_parameters():
         run_stream(stream(10), n=20, r=0.1, monitor=NullMonitor(), model_factory=Recorder)
     with pytest.raises(ValueError):
         run_stream(stream(100), n=20, r=1.0, monitor=NullMonitor(), model_factory=Recorder)
+
+
+def test_recent_accuracy_is_sliding_prequential():
+    # Recorder always predicts 0; labels switch from 0 to 1 after 100 examples
+    length, n = 200, 20
+    X = np.column_stack([np.arange(length, dtype=float), np.zeros(length)])
+    y = (np.arange(length) >= 100).astype(int)
+    res = run_stream(ArrayStream(X, y), n=n, r=0.1, monitor=NullMonitor(),
+                     model_factory=Recorder, eval_every=5)
+    acc = dict(res.recent_accuracy)
+    assert min(acc) == 2 * n                 # first value once n predictions exist
+    assert acc[100] == 1.0 and acc[110] == 0.5 and acc[120] == 0.0
+    assert all(t % 5 == 0 for t in acc)
