@@ -98,7 +98,7 @@ def table(df: pd.DataFrame, spec: dict, out_dir: Path, experiment: str) -> Path:
     keys, metrics, digits = spec["group_by"], spec["metrics"], spec.get("digits", 2)
     grouped = df.groupby(keys, sort=False)[metrics]
     mean, std = grouped.mean(), grouped.std(ddof=1)
-    summary = mean.join(std, lsuffix="_mean", rsuffix="_std")
+    summary = mean.add_suffix("_mean").join(std.add_suffix("_std"))
     base = out_dir / f"{experiment}_{spec['name']}"
     summary.to_csv(base.with_suffix(".csv"))
     lines = ["\\begin{tabular}{@{}" + "l" * len(keys) + "r" * len(metrics) + "@{}}", "\\toprule",
