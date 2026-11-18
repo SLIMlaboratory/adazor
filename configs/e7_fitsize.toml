@@ -1,0 +1,246 @@
+# Out-of-sample outlier rate of the OCSVM fitted on n/2 vs n points (review 2, point 4).
+name = "e7_fitsize"
+kind = "properties"
+seeds = [0]
+
+[[tasks]]
+task = "ocsvm_rates"
+source = {kind = "mixture", scenario = "setting1", concept = 0}
+n = 125
+reps = 200
+nu = 0.1
+gamma = "auto"
+standardize = true
+f = 0.1
+alpha = 0.025
+
+[[tasks]]
+task = "ocsvm_rates"
+source = {kind = "mixture", scenario = "setting1", concept = 0}
+n = 250
+reps = 200
+nu = 0.1
+gamma = "auto"
+standardize = true
+f = 0.1
+alpha = 0.025
+
+[[tasks]]
+task = "ocsvm_rates"
+source = {kind = "mixture", scenario = "setting2", concept = 0}
+n = 125
+reps = 200
+nu = 0.1
+gamma = "auto"
+standardize = true
+f = 0.1
+alpha = 0.025
+
+[[tasks]]
+task = "ocsvm_rates"
+source = {kind = "mixture", scenario = "setting2", concept = 0}
+n = 250
+reps = 200
+nu = 0.1
+gamma = "auto"
+standardize = true
+f = 0.1
+alpha = 0.025
+
+[[tasks]]
+task = "ocsvm_rates"
+source = {kind = "mixture", scenario = "virtual", concept = 0}
+n = 125
+reps = 200
+nu = 0.1
+gamma = "auto"
+standardize = true
+f = 0.1
+alpha = 0.025
+
+[[tasks]]
+task = "ocsvm_rates"
+source = {kind = "mixture", scenario = "virtual", concept = 0}
+n = 250
+reps = 200
+nu = 0.1
+gamma = "auto"
+standardize = true
+f = 0.1
+alpha = 0.025
+
+[[tasks]]
+task = "ocsvm_rates"
+source = {kind = "csv", file = "artificial/sea_stream.csv"}
+n = 125
+reps = 200
+nu = 0.1
+gamma = "auto"
+standardize = true
+f = 0.1
+alpha = 0.025
+
+[[tasks]]
+task = "ocsvm_rates"
+source = {kind = "csv", file = "artificial/sea_stream.csv"}
+n = 250
+reps = 200
+nu = 0.1
+gamma = "auto"
+standardize = true
+f = 0.1
+alpha = 0.025
+
+[[tasks]]
+task = "ocsvm_rates"
+source = {kind = "csv", file = "artificial/sea_big.csv"}
+n = 125
+reps = 200
+nu = 0.1
+gamma = "auto"
+standardize = true
+f = 0.1
+alpha = 0.025
+
+[[tasks]]
+task = "ocsvm_rates"
+source = {kind = "csv", file = "artificial/sea_big.csv"}
+n = 250
+reps = 200
+nu = 0.1
+gamma = "auto"
+standardize = true
+f = 0.1
+alpha = 0.025
+
+[[tasks]]
+task = "ocsvm_rates"
+source = {kind = "csv", file = "artificial/rotatingHyperplane.csv"}
+n = 125
+reps = 200
+nu = 0.1
+gamma = "auto"
+standardize = true
+f = 0.1
+alpha = 0.025
+
+[[tasks]]
+task = "ocsvm_rates"
+source = {kind = "csv", file = "artificial/rotatingHyperplane.csv"}
+n = 250
+reps = 200
+nu = 0.1
+gamma = "auto"
+standardize = true
+f = 0.1
+alpha = 0.025
+
+[[tasks]]
+task = "ocsvm_rates"
+source = {kind = "csv", file = "real-world/spam.csv"}
+n = 125
+reps = 200
+nu = 0.1
+gamma = "auto"
+standardize = true
+f = 0.1
+alpha = 0.025
+
+[[tasks]]
+task = "ocsvm_rates"
+source = {kind = "csv", file = "real-world/spam.csv"}
+n = 250
+reps = 200
+nu = 0.1
+gamma = "auto"
+standardize = true
+f = 0.1
+alpha = 0.025
+
+[[tasks]]
+task = "ocsvm_rates"
+source = {kind = "csv", file = "real-world/phishing.csv"}
+n = 125
+reps = 200
+nu = 0.1
+gamma = "auto"
+standardize = true
+f = 0.1
+alpha = 0.025
+
+[[tasks]]
+task = "ocsvm_rates"
+source = {kind = "csv", file = "real-world/phishing.csv"}
+n = 250
+reps = 200
+nu = 0.1
+gamma = "auto"
+standardize = true
+f = 0.1
+alpha = 0.025
+
+[[tasks]]
+task = "ocsvm_rates"
+source = {kind = "csv", file = "real-world/weather.csv"}
+n = 125
+reps = 200
+nu = 0.1
+gamma = "auto"
+standardize = true
+f = 0.1
+alpha = 0.025
+
+[[tasks]]
+task = "ocsvm_rates"
+source = {kind = "csv", file = "real-world/weather.csv"}
+n = 250
+reps = 200
+nu = 0.1
+gamma = "auto"
+standardize = true
+f = 0.1
+alpha = 0.025
+
+[[tasks]]
+task = "ocsvm_rates"
+source = {kind = "csv", file = "real-world/elec.csv"}
+n = 125
+reps = 200
+nu = 0.1
+gamma = "auto"
+standardize = true
+f = 0.1
+alpha = 0.025
+
+[[tasks]]
+task = "ocsvm_rates"
+source = {kind = "csv", file = "real-world/elec.csv"}
+n = 250
+reps = 200
+nu = 0.1
+gamma = "auto"
+standardize = true
+f = 0.1
+alpha = 0.025
+
+[[tasks]]
+task = "ocsvm_rates"
+source = {kind = "csv", file = "real-world/airlines2.csv"}
+n = 125
+reps = 200
+nu = 0.1
+gamma = "auto"
+standardize = true
+f = 0.1
+alpha = 0.025
+
+[[tasks]]
+task = "ocsvm_rates"
+source = {kind = "csv", file = "real-world/airlines2.csv"}
+n = 250
+reps = 200
+nu = 0.1
+gamma = "auto"
+standardize = true
+f = 0.1
+alpha = 0.025

@@ -60,6 +60,8 @@ class RunResult:
     alert_window_accuracy: list[tuple[int, float]] = field(default_factory=list)
     recent_accuracy: list[tuple[int, float]] = field(default_factory=list)
     alert_recent_accuracy: list[tuple[int, float]] = field(default_factory=list)
+    fits: list[int] = field(default_factory=list)
+    reference_rates: list[float] = field(default_factory=list)
     truncated_refill: bool = False
 
     @property
@@ -85,6 +87,8 @@ class RunResult:
             "alert_window_accuracy": self.alert_window_accuracy,
             "recent_accuracy": self.recent_accuracy,
             "alert_recent_accuracy": self.alert_recent_accuracy,
+            "fits": self.fits,
+            "reference_rates": self.reference_rates,
             "truncated_refill": self.truncated_refill,
         }
 
@@ -142,6 +146,10 @@ def run_stream(
     def refit() -> Model:
         model = model_factory().fit(np.asarray(X), np.asarray(Y))
         monitor.fit(np.asarray(X))
+        res.fits.append(res.n_read)
+        rate = getattr(monitor, "reference_rate", None)
+        if rate is not None:
+            res.reference_rates.append(rate)
         return model
 
     model = refit()

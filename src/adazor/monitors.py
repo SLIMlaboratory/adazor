@@ -98,6 +98,7 @@ class OutlierRateMonitor(Monitor):
             self.outlier = self.outlier_factory().fit(X[train])
             reference = self.outlier.flags(X[hold])
         self.rule.reset(reference)
+        self.reference_rate = float(np.mean(reference))
         self.flags = deque(self.outlier.flags(X).tolist(), maxlen=len(X))
 
     def update(self, x: np.ndarray) -> bool:

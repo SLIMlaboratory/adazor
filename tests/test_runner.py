@@ -128,3 +128,20 @@ def test_recent_accuracy_is_sliding_prequential():
     assert min(acc) == 2 * n                 # first value once n predictions exist
     assert acc[100] == 1.0 and acc[110] == 0.5 and acc[120] == 0.0
     assert all(t % 5 == 0 for t in acc)
+
+
+def test_records_fit_times_and_reference_rates():
+    rng = np.random.default_rng(1)
+    X = rng.normal(size=(3000, 2))
+    y = (X[:, 0] > 0).astype(int)
+    monitor = OutlierRateMonitor(ThresholdDriftDetector(0.1), baseline="holdout", seed=0)
+    res = run_stream(ArrayStream(X, y), n=250, r=0.1, monitor=monitor,
+                     model_factory=lambda: make_model("gnb"), eval_every=0)
+    assert res.fits[0] == 250 and len(res.fits) == res.n_alerts + 1 - res.truncated_refill
+    assert [t + 225 for t in res.alerts[:len(res.fits) - 1]] == res.fits[1:]
+    assert len(res.reference_rates) == len(res.fits)
+    assert all(0.0 <= p <= 1.0 for p in res.reference_rates)
+    assert res.reference_rates[-1] == monitor.reference_rate
+    none = run_stream(ArrayStream(X, y), n=250, r=0.1, monitor=NullMonitor(),
+                      model_factory=lambda: make_model("gnb"), eval_every=0)
+    assert none.fits == [250] and none.reference_rates == []

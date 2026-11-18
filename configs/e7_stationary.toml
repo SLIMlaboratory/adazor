@@ -1,0 +1,30 @@
+# Stream-level false alarms on stationary streams (review, point 1).
+name = "e7_stationary"
+
+[run_defaults]
+n = 250
+r = 0.1
+eval_every = 0
+
+[outlier]
+nu = 0.1
+gamma = "auto"
+standardize = true
+
+[[models]]
+name = "gnb"
+standardize = true
+
+[[blocks]]  # simulated stationary stream, two lengths
+streams = [{kind = "mixture", scenario = "stationary", length = 8000}, {kind = "mixture", scenario = "stationary", length = 32000}]
+monitors = [{kind = "adazor", alpha = 0.025, label = "ADAZOR"}, {kind = "adazor", alpha = 0.025, variance = "pooled", label = "ADAZOR pooled"}, {kind = "adazor", alpha = 0.025, baseline = "holdout", label = "ADAZOR hold-out"}, {kind = "adazor", alpha = 0.025, variance = "pooled", baseline = "holdout", label = "ADAZOR pooled hold-out"}]
+seeds = [1000, 1001, 1002, 1003, 1004, 1005, 1006, 1007, 1008, 1009, 1010, 1011, 1012, 1013, 1014, 1015, 1016, 1017, 1018, 1019, 1020, 1021, 1022, 1023, 1024, 1025, 1026, 1027, 1028, 1029, 1030, 1031, 1032, 1033, 1034, 1035, 1036, 1037, 1038, 1039, 1040, 1041, 1042, 1043, 1044, 1045, 1046, 1047, 1048, 1049, 1050, 1051, 1052, 1053, 1054, 1055, 1056, 1057, 1058, 1059, 1060, 1061, 1062, 1063, 1064, 1065, 1066, 1067, 1068, 1069, 1070, 1071, 1072, 1073, 1074, 1075, 1076, 1077, 1078, 1079, 1080, 1081, 1082, 1083, 1084, 1085, 1086, 1087, 1088, 1089, 1090, 1091, 1092, 1093, 1094, 1095, 1096, 1097, 1098, 1099]
+
+[[blocks]]  # shuffled copies of the benchmark datasets, first 20 000 examples
+streams = [{kind = "csv", file = "artificial/sea_stream.csv", shuffle = true}, {kind = "csv", file = "artificial/sea_big.csv", shuffle = true}, {kind = "csv", file = "artificial/rotatingHyperplane.csv", shuffle = true}, {kind = "csv", file = "real-world/spam.csv", shuffle = true}, {kind = "csv", file = "real-world/phishing.csv", shuffle = true}, {kind = "csv", file = "real-world/weather.csv", shuffle = true}, {kind = "csv", file = "real-world/elec.csv", shuffle = true}, {kind = "csv", file = "real-world/airlines2.csv", shuffle = true}]
+monitors = [{kind = "adazor", alpha = 0.025, label = "ADAZOR"}, {kind = "adazor", alpha = 0.025, variance = "pooled", label = "ADAZOR pooled"}, {kind = "adazor", alpha = 0.025, baseline = "holdout", label = "ADAZOR hold-out"}, {kind = "adazor", alpha = 0.025, variance = "pooled", baseline = "holdout", label = "ADAZOR pooled hold-out"}]
+seeds = [2000, 2001, 2002, 2003, 2004, 2005, 2006, 2007, 2008, 2009, 2010, 2011, 2012, 2013, 2014, 2015, 2016, 2017, 2018, 2019]
+runs = [{max_examples = 20000}]
+
+[analysis]
+tol = 250
