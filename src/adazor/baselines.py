@@ -7,6 +7,9 @@
   D3 (Gozüaçık et al., CIKM 2019): a classifier is trained to tell the
   reference window from the most recent inputs, and a drift is declared when
   its cross-validated AUC exceeds a threshold.
+* :class:`MMDMonitor`: a kernel two-sample test (maximum mean discrepancy
+  with a Gaussian kernel, Gretton et al., JMLR 2012) between the reference
+  window and the most recent inputs, with a permutation p-value.
 """
 
 from __future__ import annotations
@@ -21,7 +24,7 @@ from sklearn.tree import DecisionTreeClassifier
 
 from .monitors import Monitor
 
-__all__ = ["D3Monitor", "KSWINMonitor"]
+__all__ = ["D3Monitor", "KSWINMonitor", "MMDMonitor"]
 
 
 class KSWINMonitor(Monitor):
@@ -125,3 +128,72 @@ class D3Monitor(Monitor):
 
     def describe(self) -> str:
         return f"D3 (rho={self.rho}, tau={self.tau}, {self.classifier})"
+
+
+class MMDMonitor(Monitor):
+    """Kernel two-sample test between the reference window and recent inputs.
+
+    Every time ``m = round(rho * n)`` new inputs have been collected, the
+    unbiased estimate of the squared maximum mean discrepancy between the
+    reference window (fixed until the next refit) and these ``m`` inputs is
+    compared with its permutation distribution (``permutations`` random
+    relabelings); an alert is raised when the p-value is at most ``alpha``.
+    The inputs are standardized with the mean and standard deviation of the
+    reference, and the kernel is Gaussian with the median heuristic for its
+    width, computed on the reference.
+    """
+
+    def __init__(self, alpha: float = 0.01, rho: float = 0.2, permutations: int = 200,
+                 seed: int | None = None) -> None:
+        if not 0.0 < alpha < 1.0:
+            raise ValueError("alpha must lie in (0, 1)")
+        self.alpha, self.rho, self.permutations = alpha, rho, permutations
+        self.rng = np.random.default_rng(seed)
+        self.reference: np.ndarray | None = None
+        self.buffer: list = []
+        self.last_p = float("nan")
+
+    def fit(self, X: np.ndarray) -> None:
+        X = np.asarray(X, dtype=float)
+        self.mu, self.sd = X.mean(axis=0), X.std(axis=0)
+        self.sd[self.sd == 0] = 1.0
+        self.reference = (X - self.mu) / self.sd
+        self.m = max(2, round(self.rho * len(X)))
+        sq = _sqdist(self.reference, self.reference)
+        med = np.median(sq[np.triu_indices(len(X), k=1)])
+        self.gamma = 1.0 / med if med > 0 else 1.0
+        self.buffer = []
+
+    def update(self, x: np.ndarray) -> bool:
+        if self.reference is None:
+            raise RuntimeError("monitor not fitted")
+        self.buffer.append((np.asarray(x, dtype=float) - self.mu) / self.sd)
+        if len(self.buffer) < self.m:
+            return False
+        Z = np.vstack([self.reference, np.asarray(self.buffer)])
+        self.buffer = []
+        K = np.exp(-self.gamma * _sqdist(Z, Z))
+        n = len(self.reference)
+        observed = _mmd2(K, np.arange(n), np.arange(n, len(Z)))
+        count = 0
+        for _ in range(self.permutations):
+            perm = self.rng.permutation(len(Z))
+            count += _mmd2(K, perm[:n], perm[n:]) >= observed
+        self.last_p = (count + 1) / (self.permutations + 1)
+        return bool(self.last_p <= self.alpha)
+
+    def describe(self) -> str:
+        return f"MMD permutation test (alpha={self.alpha}, rho={self.rho})"
+
+
+def _sqdist(A: np.ndarray, B: np.ndarray) -> np.ndarray:
+    d = (A * A).sum(1)[:, None] + (B * B).sum(1)[None, :] - 2 * A @ B.T
+    return np.maximum(d, 0.0)
+
+
+def _mmd2(K: np.ndarray, a: np.ndarray, b: np.ndarray) -> float:
+    """Unbiased estimate of MMD^2 between the samples indexed by ``a`` and ``b``."""
+    Kaa, Kbb, Kab = K[np.ix_(a, a)], K[np.ix_(b, b)], K[np.ix_(a, b)]
+    na, nb = len(a), len(b)
+    return float((Kaa.sum() - np.trace(Kaa)) / (na * (na - 1))
+                 + (Kbb.sum() - np.trace(Kbb)) / (nb * (nb - 1)) - 2 * Kab.mean())

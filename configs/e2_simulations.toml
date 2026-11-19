@@ -26,6 +26,11 @@ monitors = [{kind = "none", label = "none"}, {kind = "ocdd", f = 0.1, label = "O
 streams = [{kind = "mixture", scenario = "setting1"}, {kind = "mixture", scenario = "setting2"}]
 monitors = [{kind = "ocdd", f = 0.1, label = "OCDD f=0.1 (paper OCSVM)", outlier = {gamma = 0.5, standardize = false}}, {kind = "adazor", alpha = 0.025, label = "ADAZOR (paper OCSVM)", outlier = {gamma = 0.5, standardize = false}}]
 
+# the revised rule: estimated variance, held-out baseline, only unseen points tested
+[[blocks]]
+streams = [{kind = "mixture", scenario = "setting1"}, {kind = "mixture", scenario = "setting2"}, {kind = "mixture", scenario = "setting1_abrupt"}, {kind = "mixture", scenario = "setting2_abrupt"}, {kind = "mixture", scenario = "virtual"}, {kind = "mixture", scenario = "virtual_abrupt"}, {kind = "mixture", scenario = "label_swap_abrupt"}, {kind = "mixture", scenario = "stationary"}]
+monitors = [{kind = "adazor", alpha = 0.025, variance = "pooled", baseline = "holdout", current = "unseen", label = "ADAZOR pooled unseen"}, {kind = "adazor", alpha = 0.025, baseline = "holdout", current = "unseen", label = "ADAZOR conservative unseen"}]
+
 [analysis]
 tol = 250
 

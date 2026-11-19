@@ -12,6 +12,7 @@ from adazor import (
     ArrayStream,
     D3Monitor,
     KSWINMonitor,
+    MMDMonitor,
     NullMonitor,
     OCSVMOutlierDetector,
     OutlierRateMonitor,
@@ -21,6 +22,7 @@ from adazor import (
     make_model,
 )
 
+from .shifts import CorrelationFlipStream, DatasetShiftStream
 from .streams import InjectedShiftStream, mixture_scenario
 
 DEFAULT_DATA_ROOT = "~/repo/ricerca/occ-drift-detection/data"
@@ -40,6 +42,18 @@ def build_stream(spec: dict, seed: int):
     kind = spec["kind"]
     if kind == "mixture":
         return mixture_scenario(spec["scenario"], seed, spec.get("length", 8000))
+    if kind == "corrflip":
+        stream = CorrelationFlipStream(spec["d"], rho=spec.get("rho", 0.9),
+                                       position=spec.get("position", 2000),
+                                       width=spec.get("width", 0), length=spec.get("length", 8000),
+                                       flip=spec.get("flip", True), seed=seed)
+        return stream, stream.events
+    if kind == "shifted":
+        X, y, _ = _csv(str(data_root() / spec["file"]))
+        stream = DatasetShiftStream(X, y, family=spec["family"], severity=spec["severity"],
+                                    position=spec.get("position", 2000), width=spec.get("width", 0),
+                                    length=spec.get("length", 8000), seed=seed)
+        return stream, stream.events
     if kind in ("csv", "injected"):
         X, y, _ = _csv(str(data_root() / spec["file"]))
         if kind == "csv":
@@ -76,9 +90,13 @@ def build_monitor(spec: dict, seed: int):
         else:
             rule = ZTestDriftDetector(spec.get("alpha", 0.025), variance=spec.get("variance", "conservative"))
         return OutlierRateMonitor(rule, outlier_factory, baseline=spec.get("baseline", "in_sample"),
-                                  holdout_fraction=spec.get("holdout_fraction", 0.5), seed=seed)
+                                  holdout_fraction=spec.get("holdout_fraction", 0.5),
+                                  current=spec.get("current", "window"), seed=seed)
     if kind == "kswin":
         return KSWINMonitor(alpha=spec.get("alpha", 0.005), stat_size=spec.get("stat_size", 30), seed=seed)
+    if kind == "mmd":
+        return MMDMonitor(alpha=spec.get("alpha", 0.01), rho=spec.get("rho", 0.2),
+                          permutations=spec.get("permutations", 200), seed=seed)
     if kind == "d3":
         return D3Monitor(rho=spec.get("rho", 0.2), tau=spec.get("tau", 0.7),
                          classifier=spec.get("classifier", "logreg"), folds=spec.get("folds", 5), seed=seed)
@@ -97,6 +115,12 @@ def label(spec: dict, what: str) -> str:
     if what == "stream":
         if spec["kind"] == "mixture":
             return spec["scenario"]
+        if spec["kind"] == "corrflip":
+            flip = "" if spec.get("flip", True) else ", stationary"
+            return f"corrflip d={spec['d']}" + (f", w={spec.get('width', 0)}" if flip == "" else flip)
+        if spec["kind"] == "shifted":
+            stem = Path(spec["file"]).stem
+            return f"{stem} ({spec['family']} {spec['severity']}, w={spec.get('width', 0)})"
         stem = Path(spec["file"]).stem
         if spec["kind"] == "injected":
             return f"{stem} (shift, w={spec.get('width', 0)})"
@@ -105,10 +129,12 @@ def label(spec: dict, what: str) -> str:
         k = spec["kind"]
         if k == "adazor":
             extra = [spec.get("variance", "conservative"), spec.get("baseline", "in_sample")]
+            if spec.get("current", "window") != "window":
+                extra.append(spec["current"])
             return f"ADAZOR a={spec.get('alpha', 0.025)} " + "/".join(extra)
         if k == "ocdd":
             return f"OCDD f={spec.get('f', 0.1)}"
-        return {"none": "no detection", "kswin": "KSWIN", "d3": "D3"}.get(k, k)
+        return {"none": "no detection", "kswin": "KSWIN", "d3": "D3", "mmd": "MMD"}.get(k, k)
     if what == "model":
         return spec["name"] + (" (std)" if spec.get("standardize") else "")
     raise ValueError(what)

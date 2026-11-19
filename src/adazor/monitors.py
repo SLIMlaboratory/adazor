@@ -64,24 +64,39 @@ class OutlierRateMonitor(Monitor):
         the reference indicators are computed on the remaining
         ``holdout_fraction`` of the points, which removes the optimistic bias of
         in-sample indicators.
+    current:
+        Which points of the current window are tested. ``"window"``: all of
+        them, as in the conference paper; right after a refit, the window then
+        still contains the points used to fit the outlier detector, whose
+        indicators are biased low. ``"unseen"`` (only with
+        ``baseline="holdout"``): only the points not used to fit the outlier
+        detector, i.e. the held-out points still in the window and the points
+        read since the last refit, so that every test compares two samples of
+        points the detector has not seen.
     seed:
         Seed for the random split used by ``baseline="holdout"``.
     """
 
     BASELINES = ("in_sample", "holdout")
+    CURRENTS = ("window", "unseen")
 
     def __init__(self, rule: DriftDetector,
                  outlier_factory: Callable[[], OCSVMOutlierDetector] = OCSVMOutlierDetector,
                  baseline: str = "in_sample", holdout_fraction: float = 0.5,
-                 seed: int | None = None) -> None:
+                 current: str = "window", seed: int | None = None) -> None:
         if baseline not in self.BASELINES:
             raise ValueError(f"baseline must be one of {self.BASELINES}")
+        if current not in self.CURRENTS:
+            raise ValueError(f"current must be one of {self.CURRENTS}")
+        if current == "unseen" and baseline != "holdout":
+            raise ValueError('current="unseen" requires baseline="holdout"')
         if not 0.0 < holdout_fraction < 1.0:
             raise ValueError("holdout_fraction must lie in (0, 1)")
         self.rule = rule
         self.outlier_factory = outlier_factory
         self.baseline = baseline
         self.holdout_fraction = holdout_fraction
+        self.current = current
         self.rng = np.random.default_rng(seed)
         self.outlier = None
         self.flags: deque = deque()
@@ -99,17 +114,26 @@ class OutlierRateMonitor(Monitor):
             reference = self.outlier.flags(X[hold])
         self.rule.reset(reference)
         self.reference_rate = float(np.mean(reference))
-        self.flags = deque(self.outlier.flags(X).tolist(), maxlen=len(X))
+        flags = [bool(f) for f in self.outlier.flags(X)]
+        if self.current == "unseen":
+            # fitted points stay in the window (None) but are never tested
+            fitted = set(train.tolist())
+            flags = [None if i in fitted else f for i, f in enumerate(flags)]
+        self.flags = deque(flags, maxlen=len(X))
+
+    def _tested(self) -> list[bool]:
+        return [f for f in self.flags if f is not None]
 
     def update(self, x: np.ndarray) -> bool:
         if self.outlier is None:
             raise RuntimeError("monitor not fitted")
         self.flags.append(bool(self.outlier.flags(x)[0]))
-        return self.rule.detect(self.flags)
+        return self.rule.detect(self._tested())
 
     @property
     def outlier_rate(self) -> float:
-        return float(np.mean(self.flags)) if self.flags else float("nan")
+        tested = self._tested()
+        return float(np.mean(tested)) if tested else float("nan")
 
     def describe(self) -> str:
-        return f"{self.rule.message()}, baseline={self.baseline}"
+        return f"{self.rule.message()}, baseline={self.baseline}, current={self.current}"

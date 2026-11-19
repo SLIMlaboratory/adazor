@@ -105,3 +105,44 @@ def test_standardized_model_is_scale_invariant():
     assert acc(std) > 0.9
     assert acc(std) > acc(plain) + 0.2
     assert std.predict_one(Xs[300]) in (0, 1)
+
+
+def test_unseen_current_window_excludes_fitted_points(data):
+    ref, same, _ = data
+    mon = OutlierRateMonitor(ZTestDriftDetector(0.025, variance="pooled"), baseline="holdout",
+                             current="unseen", seed=0)
+    mon.fit(ref)
+    assert len(mon.flags) == 250 and len(mon._tested()) == 125
+    # right after the fit, the tested points are exactly the reference ones
+    assert mon.outlier_rate == pytest.approx(mon.rule.baseline_rate)
+    unseen = [f is not None for f in mon.flags]      # mask of the window at the fit
+    for x in same[:300]:
+        mon.update(x)
+        unseen = (unseen + [True])[-250:]            # the loop's window slides by one
+        assert len(mon.flags) == 250
+        assert len(mon._tested()) == sum(unseen)
+    assert len(mon._tested()) == 250                 # fitted points have left
+    assert mon.outlier_rate == pytest.approx(mon.outlier.flags(same[50:300]).mean())
+
+
+def test_unseen_removes_post_refit_bias():
+    # high-dimensional stationary data: the in-sample flags of the fitted half
+    # lower the current rate right after a refit, unless they are excluded
+    rng = np.random.default_rng(1)
+    gaps = {"window": [], "unseen": []}
+    for rep in range(30):
+        X = rng.normal(size=(250, 40))
+        for current, values in gaps.items():
+            mon = OutlierRateMonitor(ZTestDriftDetector(0.025, variance="pooled"),
+                                     baseline="holdout", current=current, seed=rep)
+            mon.fit(X)
+            values.append(mon.outlier_rate - mon.rule.baseline_rate)
+    assert np.mean(gaps["window"]) < -0.05
+    assert np.mean(gaps["unseen"]) == pytest.approx(0.0, abs=1e-12)
+
+
+def test_unseen_requires_holdout():
+    with pytest.raises(ValueError):
+        OutlierRateMonitor(ZTestDriftDetector(), baseline="in_sample", current="unseen")
+    with pytest.raises(ValueError):
+        OutlierRateMonitor(ZTestDriftDetector(), baseline="holdout", current="nope")

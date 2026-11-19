@@ -5,7 +5,7 @@ outlier indicator, and a two-proportion test compares the outlier rate in a
 sliding window with the rate observed at the last retraining.
 """
 
-from .baselines import D3Monitor, KSWINMonitor
+from .baselines import D3Monitor, KSWINMonitor, MMDMonitor
 from .detectors import (
     DriftDetector,
     NoDriftDetector,
@@ -31,6 +31,7 @@ __all__ = [
     "DriftingMixtureStream",
     "GaussianMixture",
     "KSWINMonitor",
+    "MMDMonitor",
     "Model",
     "Monitor",
     "NoDriftDetector",

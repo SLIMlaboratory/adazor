@@ -72,6 +72,22 @@ rho = 0.2
 tau = 0.7
 label = "D3"
 
+
+[[monitors]]
+kind = "adazor"
+alpha = 0.025
+variance = "pooled"
+baseline = "holdout"
+current = "unseen"
+label = "ADAZOR pooled unseen"
+
+[[monitors]]
+kind = "adazor"
+alpha = 0.025
+baseline = "holdout"
+current = "unseen"
+label = "ADAZOR conservative unseen"
+
 [[streams]]
 kind = "mixture"
 scenario = "setting1"

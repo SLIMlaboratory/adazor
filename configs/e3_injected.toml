@@ -37,6 +37,22 @@ alpha = 0.025
 baseline = "holdout"
 label = "ADAZOR hold-out"
 
+
+[[monitors]]
+kind = "adazor"
+alpha = 0.025
+variance = "pooled"
+baseline = "holdout"
+current = "unseen"
+label = "ADAZOR pooled unseen"
+
+[[monitors]]
+kind = "adazor"
+alpha = 0.025
+baseline = "holdout"
+current = "unseen"
+label = "ADAZOR conservative unseen"
+
 [[streams]]
 kind = "injected"
 file = "artificial/sea_stream.csv"
